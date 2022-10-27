@@ -9,9 +9,9 @@ const port = 7000;
 let players = [];
 
 let coin = {x: 20+760*Math.random(),
-        y: 20+560*Math.random()}
+        y: 20+560*Math.random()};
 
-let tmp = 0;
+let fires = [{x: 150, y: 150}, {x: 523, y:120}, {x: 300, y: 402}];
 
 setInterval(()=>{players.forEach(player => {
   player.can_send = true;
@@ -35,12 +35,11 @@ io.on('connection', (socket) => {
           login: login,
           can_send: true,
           score: 0,
-          x: 150+tmp,
-          y: 150,
+          x: 20+760*Math.random(),
+          y: 20+560*Math.random(),
           velocity: 0,
           rotate: 0
         });
-        tmp+=100;
         socket.emit("successful");
       }
   })
@@ -113,14 +112,20 @@ io.on('connection', (socket) => {
         }
     });
 
-    if(Math.sqrt((coin.x - player.x)^2 + (coin.y - player.y)^2) < 0.5){
+    if(Math.sqrt((coin.x - player.x)^2 + (coin.y - player.y)^2) < 2){
       player.score++;
       coin.x = 20+760*Math.random();
       coin.y = 20+560*Math.random();
       console.log(player.score);
     }
 
-    io.emit('redraw', [players, coin]);
+    fires.forEach(fire => {
+      if(Math.sqrt((fire.x - player.x)^2 + (fire.y - player.y)^2) < 2){
+        player.velocity = 0;
+      }
+    });
+
+    io.emit('redraw', [players, coin, fires]);
   })
 
   socket.on('disconnect', () => {

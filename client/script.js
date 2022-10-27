@@ -8,6 +8,9 @@ const heightCar = 60;
 const widthCoin = 25;
 const heightCoin = 25;
 
+const widthFire = 50;
+const heightFire = 50;
+
 button.onclick = () =>{
     let login = document.getElementById('login').value;
     socket.emit('login', login);
@@ -43,6 +46,9 @@ greenCar.src = 'assets/green_car.png';
 
 const coinImage = new Image(5,5);
 coinImage.src = 'assets/coin.png';
+
+const fireImage = new Image(5,5);
+fireImage.src = 'assets/fire.png';
 
 let keys = {};
 
@@ -87,4 +93,9 @@ socket.on('redraw', (data)=>{
   });
   const coin = data[1]
   ctx.drawImage(coinImage, coin.x, coin.y, widthCoin, heightCoin);
+
+  const fires = data[2]
+  fires.forEach(fire => {
+    ctx.drawImage(fireImage, fire.x, fire.y, widthFire, heightFire);
+  });
 })
