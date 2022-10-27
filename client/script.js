@@ -5,6 +5,9 @@ let devLogin = document.querySelector('#devLogin');
 const widthCar = 30;
 const heightCar = 60;
 
+const widthCoin = 25;
+const heightCoin = 25;
+
 button.onclick = () =>{
     let login = document.getElementById('login').value;
     socket.emit('login', login);
@@ -38,6 +41,9 @@ canvas.style.margin = "0 auto"
 const greenCar = new Image(5,5);
 greenCar.src = 'assets/green_car.png';
 
+const coinImage = new Image(5,5);
+coinImage.src = 'assets/coin.png';
+
 let keys = {};
 
 document.addEventListener('keydown', (event) => {
@@ -65,12 +71,13 @@ document.addEventListener('keyup', (event) => {
 socket.on('redraw', (data)=>{
   console.log('redraw');
   ctx.drawImage(background, 0, 0);
-  data.forEach(player => {
+  const players = data[0]
+  players.forEach(player => {
     console.log(player.x, player.y);
     ctx.save();
     ctx.translate(player.x, player.y);
     ctx.rotate(player.rotate * Math.PI/180);
-    //ctx.translate(widthCar / 2, heightCar / 2);
+    //ctx.translate(-widthCar / 2, -heightCar / 2);
     //ctx.drawImage(greenCar, player.x, player.y, widthCar, heightCar);
     ctx.drawImage(greenCar, 0,0, widthCar, heightCar);
     ctx.fillStyle = "rgb(255,255,255)";
@@ -78,4 +85,6 @@ socket.on('redraw', (data)=>{
     ctx.fillText(player.login, -40, -5, 60);
     ctx.restore();
   });
+  const coin = data[1]
+  ctx.drawImage(coinImage, coin.x, coin.y, widthCoin, heightCoin);
 })

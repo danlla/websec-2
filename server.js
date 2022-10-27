@@ -3,12 +3,19 @@ const express = require('express'),
   http = require('http').createServer(app),
   io = require('socket.io')(http)
 
-const host = 'localhost'
-const port = 7000
+const host = 'localhost';
+const port = 7000;
 
-let players = []
+let players = [];
+
+let coin = {x: 20+760*Math.random(),
+        y: 20+560*Math.random()}
 
 let tmp = 0;
+
+setInterval(()=>{players.forEach(player => {
+  player.can_send = true;
+});}, 10);
 
 io.on('connection', (socket) => {
   console.log(`Client with id ${socket.id} connected`)
@@ -26,6 +33,8 @@ io.on('connection', (socket) => {
         players.push({
           id: socket.id,
           login: login,
+          can_send: true,
+          score: 0,
           x: 150+tmp,
           y: 150,
           velocity: 0,
@@ -42,6 +51,11 @@ io.on('connection', (socket) => {
     let player = players.find((player) => player.id === socket.id);
     if(player===undefined)
       return;
+
+    if(player.can_send===false)
+      return;
+    player.can_send = false;
+
     if(keys['a'] == true)
     {
       if(player.velocity > 0)
@@ -81,7 +95,32 @@ io.on('connection', (socket) => {
     }
     player.x+=player.velocity * Math.sin(player.rotate * Math.PI / 180);
     player.y-=player.velocity * Math.cos(player.rotate * Math.PI / 180);
-    io.emit('redraw', players);
+
+    if(player.x>=799)
+      player.x = 798;
+    if(player.x<=1)
+      player.x = 2;
+    if(player.y>=599)
+      player.y=598;
+    if(player.y<=1)
+      player.y = 2;
+
+    players.forEach(p => {
+      if(p!==player)
+        if(Math.sqrt((p.x - player.x)^2 + (p.y - player.y)^2) < 1.2){
+          p.velocity = 0;
+          player.velocity = 0;
+        }
+    });
+
+    if(Math.sqrt((coin.x - player.x)^2 + (coin.y - player.y)^2) < 0.5){
+      player.score++;
+      coin.x = 20+760*Math.random();
+      coin.y = 20+560*Math.random();
+      console.log(player.score);
+    }
+
+    io.emit('redraw', [players, coin]);
   })
 
   socket.on('disconnect', () => {
