@@ -5,26 +5,31 @@ const express = require('express'),
 
 const host = 'localhost';
 const port = 7000;
-
+const height = 600;
+const width = 800;
 let players = [];
 
-let coin = {x: 20+760*Math.random(),
-        y: 20+560*Math.random()};
+let coin = {x: 20+(width-20*2)*Math.random(),
+        y: 10+(height-10*2)*Math.random()};
 
-let fires = [{x: 150, y: 150}, {x: 523, y:120}, {x: 300, y: 402}];
+let fires = [{x: 60+(width-60*2)*Math.random(), y: 40+(height-40*2)*Math.random(), changing: false}, {x: 60+(width-60*2)*Math.random(), y:40+(height-40*2)*Math.random(), changing: false}, {x: 60+(width-60*2)*Math.random(), y: 40+(height-40*2)*Math.random(), changing: false}];
 
 setInterval(()=>{players.forEach(player => {
-  player.can_send = true;
+  player.canSend = true;
 });}, 10);
 
 io.on('connection', (socket) => {
   console.log(`Client with id ${socket.id} connected`)
 
-  socket.on('login', (login) => {
+  socket.on('login', (loginData) => {
+    if(!/^[a-zA-Z0-9-_\.]{3,16}$/i.test(loginData.l)){
+      socket.emit('bad login', 'login must be in range (3,16) and consist of letters, numbers and the _ symbol')
+      return;
+    }
     let loginExist = false;
       players.forEach(player => {
-        if(player.login === login){
-            socket.emit('login exist');
+        if(player.login === loginData.l){
+            socket.emit('bad login', 'login exist');
             loginExist = true;
             return;
         }
@@ -32,15 +37,17 @@ io.on('connection', (socket) => {
       if(!loginExist){
         players.push({
           id: socket.id,
-          login: login,
-          can_send: true,
+          login: loginData.l,
+          canSend: true,
+          color: loginData.color,
           score: 0,
-          x: 20+760*Math.random(),
-          y: 20+560*Math.random(),
+          fireTouched: 0,
+          x: 20+(width-20*2)*Math.random(),
+          y: 10+(height-10*2)*Math.random(),
           velocity: 0,
           rotate: 0
         });
-        socket.emit("successful");
+        socket.emit("successful", {w:width, h:height});
       }
   })
 
@@ -51,9 +58,9 @@ io.on('connection', (socket) => {
     if(player===undefined)
       return;
 
-    if(player.can_send===false)
+    if(player.canSend===false)
       return;
-    player.can_send = false;
+    player.canSend = false;
 
     if(keys['a'] == true)
     {
@@ -106,13 +113,13 @@ io.on('connection', (socket) => {
 
     players.forEach(p => {
       if(p!==player)
-        if(Math.sqrt((p.x - player.x)^2 + (p.y - player.y)^2) < 1.2){
+        if(Math.pow((p.x - player.x),2) + Math.pow((p.y - player.y),2) < Math.pow(55,2)){
           p.velocity = 0;
-          player.velocity = 0;
+          player.velocity = -player.velocity*1.1;
         }
     });
 
-    if(Math.sqrt((coin.x - player.x)^2 + (coin.y - player.y)^2) < 2){
+    if(Math.pow((coin.x - player.x),2) + Math.pow((coin.y - player.y),2) < Math.pow(45,2)){
       player.score++;
       coin.x = 20+760*Math.random();
       coin.y = 20+560*Math.random();
@@ -120,8 +127,17 @@ io.on('connection', (socket) => {
     }
 
     fires.forEach(fire => {
-      if(Math.sqrt((fire.x - player.x)^2 + (fire.y - player.y)^2) < 2){
-        player.velocity = 0;
+      if(Math.pow((fire.x - player.x), 2) + Math.pow((fire.y - player.y),2) < Math.pow(40,2)){
+        player.velocity = player.velocity > 0? 0.5: -0.5;
+        if(!fire.changing){
+          fire.changing = true;
+          setTimeout(()=>{
+          fire.x = 60+(width-60*2)*Math.random();
+          fire.y = 40+(height-40*2)*Math.random();
+          player.fireTouched += 1;
+          fire.changing = false;
+        }, 1000);
+        }
       }
     });
 
