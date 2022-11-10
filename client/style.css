@@ -15,8 +15,49 @@
     padding: 10px;
 }
 
+#field{
+    text-align: center;
+    display: block;
+}
+
+#colorAndButton{
+    text-align: center;
+    display: block;
+    margin-left: auto; 
+    margin-right: auto; 
+    padding: 10px;
+}
+
 body{
     background-image: url("assets/background.jpg");
     background-repeat: no-repeat;
     background-size:cover;
+}
+
+select:focus{
+    outline: none;
+}
+
+#color{
+    width: 50px;
+    background-color: aqua;
+}
+#aqua{
+    background-color: aqua;
+}
+
+#green{
+    background-color: green;
+}
+
+#purple{
+    background-color: purple;
+}
+
+#red{
+    background-color: red;
+}
+
+#white{
+    background-color: white;
 }
