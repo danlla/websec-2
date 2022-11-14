@@ -7,12 +7,18 @@ const host = 'localhost';
 const port = 7000;
 const height = 600;
 const width = 800;
+const countCoinToWin = 10;
+const countFires = 5;
+const maxPlayer = 10;
+let startGame = false;
 let players = [];
 
 let coin = {x: 20+(width-20*2)*Math.random(),
         y: 10+(height-10*2)*Math.random()};
 
-let fires = [{x: 60+(width-60*2)*Math.random(), y: 40+(height-40*2)*Math.random(), changing: false}, {x: 60+(width-60*2)*Math.random(), y:40+(height-40*2)*Math.random(), changing: false}, {x: 60+(width-60*2)*Math.random(), y: 40+(height-40*2)*Math.random(), changing: false}];
+let fires = [];
+for(let i = 0; i < countFires; i++)
+  fires.push({x: 60+(width-60*2)*Math.random(), y: 40+(height-40*2)*Math.random(), changing: false})
 
 setInterval(()=>{players.forEach(player => {
   player.canSend = true;
@@ -22,14 +28,24 @@ io.on('connection', (socket) => {
   console.log(`Client with id ${socket.id} connected`)
 
   socket.on('login', (loginData) => {
-    if(!/^[a-zA-Z0-9-_\.]{3,16}$/i.test(loginData.l)){
-      socket.emit('bad login', 'login must be in range (3,16) and consist of letters, numbers and the _ symbol')
+    if(!/^[a-zA-Z0-9-_\.]{3,10}$/i.test(loginData.l)){
+      socket.emit('error', 'login must be in range (3,10) and consist of letters, numbers and the _ symbol')
+      return;
+    }
+
+    if(players.length === maxPlayer){
+      socket.emit('error', `max ${maxPlayer} player`);
+      return;
+    }
+
+    if(startGame){
+      socket.emit('error', 'game already started');
       return;
     }
     let loginExist = false;
       players.forEach(player => {
         if(player.login === loginData.l){
-            socket.emit('bad login', 'login exist');
+            socket.emit('error', 'login exist');
             loginExist = true;
             return;
         }
@@ -38,7 +54,9 @@ io.on('connection', (socket) => {
         players.push({
           id: socket.id,
           login: loginData.l,
+          ready: false,
           canSend: true,
+          inLobby: true,
           color: loginData.color,
           score: 0,
           fireTouched: 0,
@@ -47,8 +65,42 @@ io.on('connection', (socket) => {
           velocity: 0,
           rotate: 0
         });
-        socket.emit("successful", {w:width, h:height});
+        socket.emit('lobby');
+        io.emit('updateLobby', players);
       }
+  })
+
+  socket.on('ready', (ready)=>{
+    if(ready===undefined)
+      return;
+    let player = players.find((player) => player.id === socket.id);
+    if(player===undefined)
+    {
+      console.log(`${socket.id} undefined`);
+      console.log(players);
+    }
+    player.ready = ready;
+    players.forEach(p => {
+      if(p.inLobby)
+        socket.to(p.id).emit('updateLobby', players);
+    });
+    socket.emit('updateLobby', players);
+    let someNotReady = false;
+    players.forEach((player)=>{
+      if(!player.ready)
+        someNotReady = true;
+    })
+    if(!someNotReady){
+      startGame = true;
+      io.emit('start');
+    }
+  })
+
+  socket.on('back', ()=>{
+    let player = players.find((player) => player.id === socket.id);
+    player.inLobby = true;
+    socket.emit('lobby');
+    socket.emit('updateLobby', players);
   })
 
   socket.on('key', (keys)=>{
@@ -58,8 +110,12 @@ io.on('connection', (socket) => {
     if(player===undefined)
       return;
 
+    if(player.ready===false)
+      return;
+
     if(player.canSend===false)
       return;
+
     player.canSend = false;
 
     if(keys['a'] == true)
@@ -123,7 +179,13 @@ io.on('connection', (socket) => {
       player.score++;
       coin.x = 20+760*Math.random();
       coin.y = 20+560*Math.random();
-      console.log(player.score);
+    }
+
+    if(player.score === countCoinToWin){
+      io.emit('end', {ps:players, p:player});
+      players.forEach((player)=>{player.ready = false; player.score=0; player.fireTouched=0; player.inLobby=false;});
+      startGame = false;
+      return;
     }
 
     fires.forEach(fire => {
@@ -141,12 +203,14 @@ io.on('connection', (socket) => {
       }
     });
 
-    io.emit('redraw', [players, coin, fires]);
+    io.emit('redraw', {ps:players, c:coin, f:fires});
   })
 
   socket.on('disconnect', () => {
-    players.splice(players.find((player) => player.id === socket.id), 1)
-    console.log(`Client with id ${socket.id} disconnected`)
+    players.splice(players.findIndex((player) => player.id === socket.id), 1);
+    console.log(`Client with id ${socket.id}} disconnected`);
+    if(players.length === 0)
+      startGame = false;
   })
 })
 
@@ -167,23 +231,6 @@ app.get('/players', (req, res) => {
       players: players,
     })
   })
-
-app.post('/player/:id', (req, res) => {
-  if (players.indexOf(req.params.id) !== -1) {
-    io.sockets.connected[req.params.id].emit(
-      'private message',
-      `Message to player with id ${req.params.id}`
-    )
-    return res
-      .status(200)
-      .json({
-        message: `Message was sent to client with id ${req.params.id}`,
-      })
-  } else
-    return res
-      .status(404)
-      .json({ message: 'Client not found' })
-})
 
 http.listen(port, host, () =>
   console.log(`Server listens http://${host}:${port}`)
