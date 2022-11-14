@@ -15,9 +15,19 @@
     padding: 10px;
 }
 
+#login{
+    border-radius: 5px;
+    background-color: rgb(231, 190, 231);
+}
+
 #field{
     text-align: center;
     display: block;
+}
+
+#button{
+    border-radius: 5px;
+    background-color: rgb(231, 190, 231);
 }
 
 #colorAndButton{
@@ -32,15 +42,21 @@ body{
     background-image: url("assets/background.jpg");
     background-repeat: no-repeat;
     background-size:cover;
+    text-align: center;
 }
 
 select:focus{
     outline: none;
 }
 
+button:focus{
+    outline: none;
+}
+
 #color{
     width: 50px;
     background-color: aqua;
+    border-radius: 5px;
 }
 #aqua{
     background-color: aqua;
