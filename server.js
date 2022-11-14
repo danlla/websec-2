@@ -10,6 +10,7 @@ const width = 800;
 const countCoinToWin = 10;
 const countFires = 5;
 const maxPlayer = 10;
+const maxVelocity = 4;
 let startGame = false;
 let players = [];
 
@@ -138,13 +139,13 @@ io.on('connection', (socket) => {
       player.rotate = player.rotate +360;
 
     if(keys['w'] == true)
-      if(player.velocity<4)
+      if(player.velocity<maxVelocity)
         player.velocity+=0.2;
     if(keys['s'] == true){
       if(player.velocity > 0)
         player.velocity-=0.5;
       if(player.velocity<=0)
-        if(player.velocity>-4)
+        if(player.velocity>-maxVelocity)
           player.velocity-=0.2;
     }
     if(keys['w']==false && keys['s']==false){
